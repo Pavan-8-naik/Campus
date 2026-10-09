@@ -200,6 +200,7 @@ function Navbar() {
 
       <div className="nav-links">
         <Link to="/">Home</Link>
+        <Link to="/dashboard">Dashboard</Link>
         <Link to="/lost">Lost Items</Link>
         <Link to="/found">Found Items</Link>
       </div>
@@ -372,6 +373,115 @@ function Home() {
 
         </section>
 
+      </main>
+    </>
+  );
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function Dashboard() {
+  const { items, loading, error } = useFirestoreItems();
+  const allItems = [...items, ...demoLostItems, ...demoFoundItems];
+  const lostCount = allItems.filter((item) => item.type === "lost").length;
+  const foundCount = allItems.filter((item) => item.type === "found").length;
+  const recentItems = [...allItems]
+    .sort(
+      (a, b) =>
+        (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+    )
+    .slice(0, 5);
+
+  return (
+    <>
+      <Navbar />
+
+      <main className="dashboard-page">
+        <header className="dashboard-header">
+          <div>
+            <div className="section-label">CAMPUS OVERVIEW</div>
+            <h1>Your dashboard</h1>
+            <p>See what has been reported and help campus items find their way home.</p>
+          </div>
+          <div className="dashboard-actions">
+            <Link to="/report-lost" className="dashboard-action">
+              + Report lost
+            </Link>
+            <Link to="/report-found" className="dashboard-action secondary">
+              + Report found
+            </Link>
+          </div>
+        </header>
+
+        {error && <p className="firebase-status">{error} Showing available sample reports.</p>}
+
+        <section className="dashboard-stats" aria-label="Item report totals">
+          <Link to="/lost" className="dashboard-stat">
+            <span className="dashboard-stat-icon">🔎</span>
+            <span className="dashboard-stat-label">Lost items</span>
+            <strong>{lostCount}</strong>
+            <span className="dashboard-stat-link">Browse lost items →</span>
+          </Link>
+
+          <Link to="/found" className="dashboard-stat">
+            <span className="dashboard-stat-icon">📦</span>
+            <span className="dashboard-stat-label">Found items</span>
+            <strong>{foundCount}</strong>
+            <span className="dashboard-stat-link">Browse found items →</span>
+          </Link>
+
+          <div className="dashboard-stat total">
+            <span className="dashboard-stat-icon">📋</span>
+            <span className="dashboard-stat-label">Total reports</span>
+            <strong>{allItems.length}</strong>
+            <span className="dashboard-stat-link">Across the campus</span>
+          </div>
+        </section>
+
+        <section className="dashboard-recent">
+          <div className="dashboard-section-heading">
+            <div>
+              <div className="section-label">LATEST ACTIVITY</div>
+              <h2>Recent reports</h2>
+            </div>
+            <Link to="/lost">Browse all items →</Link>
+          </div>
+
+          {loading && <p className="firebase-status">Loading live reports...</p>}
+
+          <div className="dashboard-report-list">
+            {recentItems.map((item) => (
+              <Link
+                to={`/item/${item.id}?type=${item.type}`}
+                className="dashboard-report"
+                key={`${item.type}-${item.id}`}
+              >
+                <span className="dashboard-report-icon">
+                  {item.emoji || getEmoji(item.category)}
+                </span>
+                <span className="dashboard-report-details">
+                  <strong>{item.name}</strong>
+                  <small>{item.category} · {item.location}</small>
+                </span>
+                <span className={`dashboard-report-status ${item.type}`}>
+                  {item.type === "lost" ? "Lost" : "Found"}
+                </span>
+                <span className="dashboard-report-date">
+                  {item.date ||
+                    (item.createdAt?.seconds
+                      ? new Date(item.createdAt.seconds * 1000).toLocaleDateString(
+                          undefined,
+                          { month: "short", day: "numeric" }
+                        )
+                      : "Recent")}
+                </span>
+                <span className="dashboard-report-arrow">→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </main>
     </>
   );
@@ -1653,6 +1763,11 @@ function App() {
         <Route
           path="/"
           element={<Home />}
+        />
+
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
         />
 
         <Route
